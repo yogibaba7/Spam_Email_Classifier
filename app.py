@@ -5,35 +5,50 @@ from data_cleaning import CleanData
 from text_preprocessing import TextPreprocessing
 from model_training import ModelTraining
 
-# import data
+# import  data
 data = pd.read_csv('spam.csv',encoding='latin1')  # Email spam dataset
-data1 = pd.read_csv('Youtube-Spam-Dataset.csv')   # Youtube spam comment dataset
+youtube_comments = pd.read_csv('Youtube-Spam-Dataset.csv')   # Youtube spam comment dataset
 
 # Clean data 
-cd = CleanData(data)
-clean_data = cd.perform_data_cleaning()
+cd = CleanData()
+clean_data = cd.perform_data_cleaning(data) # clean email spam dataset
 print(clean_data.shape)
+
+clean_youtube_comments = cd.perform_data_cleaning_on_comment(youtube_comments) # cleam youtube comment dataset
+print(clean_youtube_comments.shape)
 
 # Text Preprocessing
 tp = TextPreprocessing()
-x = tp.preprocess_text(clean_data['text']) # Text Preprocessing
+x = tp.preprocess_text_for_email(clean_data['text']) # Text Preprocessing on email
+x1 = tp.preprocess_text_for_comments(clean_youtube_comments['CONTENT']) # TEXT PREPROCESSING ON COMMENTS
 
-tp.Vectorization(x) # create vectorization model 
+
+tp.Vectorization_on_email(x) # create vectorization model on email
+tp.Vectorization_on_comments(x1) # create vectorization model on comments
 
 vect_model = pickle.load(open('vect_model.pkl','rb')) # load vectorization model
+vect_model_for_comments = pickle.load(open('vect_model_for_comments.pkl','rb')) # load vectorization model of comments
 
-inp = vect_model.transform(x) # inp -> input
-out = clean_data['target']    # out -> output
+
+inp = vect_model.transform(x) # inp -> input for email
+out = clean_data['target']    # out -> output for email 
+
+inp_for_comments = vect_model_for_comments.transform(x1) # inp -> input for comments
+out_for_comments = clean_youtube_comments['CLASS']    # out -> output for comments
 
 print(inp.shape,out.shape)
+print(inp_for_comments.shape,out_for_comments.shape)
 
 # Model Training
 mt = ModelTraining()
-mt.train_model(inp,out) # X as input and y as target
+mt.train_model(inp,out) # X as input and y as target / (model for email)
+mt.train_model_for_comments(inp_for_comments,out_for_comments)
+
+
 
 # load prediction model 
-model = pickle.load(open('model.pkl','rb'))
-
+model = pickle.load(open('model.pkl','rb')) # for email
+model_for_comments = pickle.load(open('model_for_comments.pkl','rb')) # for comments
 
 
 
@@ -55,7 +70,7 @@ option = st.sidebar.radio(
 # Function for the Home Page
 def home_page():
     st.title("🌟 Text Classifier App 🌟")
-    st.header("Welcome to Your Text Classifier App")
+    st.header("Welcome to Text Classifier App")
     st.subheader("Let's Predict What Your Text Says...")
     st.markdown(
         """
@@ -77,11 +92,6 @@ def email_classifier_page():
         inp = vect_model.transform(user_input)   # apply vectorization
         
         output = model.predict(inp)
-
-
-
-
-
         # Dummy result for now
         if output ==0:
             st.write("📋 Your input text has been classified as **Not Spam**. ")
@@ -96,8 +106,16 @@ def youtube_classifier_page():
     # Add a text input field for user to enter YouTube comment
     user_input = st.text_area("Enter the YouTube comment:")
     if st.button("Classify"):
-        # Dummy result for now
-        st.write("📋 Your input text has been classified as **Spam**.")
+
+        user_input = pd.Series(user_input) # Convert into series
+        inp = vect_model_for_comments.transform(user_input)   # apply vectorization
+        
+        output = model_for_comments.predict(inp)
+
+        if output ==0:
+            st.write("📋 Your input text has been classified as **Not Spam**.")
+        else:
+            st.write('📋 Your input text has been classified as **Spam**.')
 
 # Render the selected page
 if option == "Home":

@@ -11,3 +11,8 @@ class ModelTraining:
         mnb = MultinomialNB()
         mnb.fit(input,output)
         pickle.dump(mnb,open('model.pkl','wb'))
+
+    def train_model_for_comments(self,input,output):
+        mnb = MultinomialNB()
+        mnb.fit(input,output)
+        pickle.dump(mnb,open('model_for_comments.pkl','wb'))      
